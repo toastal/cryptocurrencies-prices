@@ -1,0 +1,50 @@
+# Elm
+#######
+/elm-stuff
+/elm.js
+/main.js
+
+
+# Haskell
+##########
+.stack-*
+
+
+# Node
+#######
+node_modules/
+/coverage/
+
+# Dist
+#######
+/dist/
+.tup
+
+
+# Logs
+########
+/logs
+*.log
+
+
+# OS generated files
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+.Trash*
+.history/
+
+# OS webstorm
+######################
+/.idea
+
+
+# Tmp
+/tmp
+test-results.xml

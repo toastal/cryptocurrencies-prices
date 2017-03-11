@@ -12,6 +12,7 @@ import Prelude
 import Data.Aeson.Lens (_String, key)
 import qualified Network.Wreq as Wreq
 import qualified Options.Applicative as Optparse
+import Options.Applicative.Types (ReadM)
 
 main :: IO ()
 main = do
@@ -22,18 +23,25 @@ main = do
   let amount = r ^? Wreq.responseBody . key "data" . key "amount" . _String
   putStrLn . maybe "Err" Text.unpack $ amount
 
---data Crypto
---  = BTC
---  | ETH
---  deriving (Eq, Read, Show)
-currencyParser :: Optparse.Parser (String, String)
+data Crypto
+  = BTC
+  | ETH
+  deriving (Eq, Read, Show)
+
+data CurrencyPair =
+  CurrencyPair Crypto
+               String
+
+currencyParser :: Optparse.Parser CurrencyPair
 currencyParser =
-  (,) <$>
-  Optparse.strOption
+  CurrencyPair <$>
+  Optparse.option
+    Optparse.auto
     (Optparse.long "crypto" <> Optparse.metavar "CRYPTO" <>
      Optparse.help "Cryptocurrency: BTC | ETH") <*>
   Optparse.strOption
     (Optparse.long "currency" <> Optparse.metavar "CURRENCY" <> Optparse.help "Currency: USD | ...")
 
-coinbaseApi :: (String, String) -> String
-coinbaseApi (cry, cur) = "https://api.coinbase.com/v2/prices/" <> cry <> "-" <> cur <> "/spot"
+coinbaseApi :: CurrencyPair -> String
+coinbaseApi (CurrencyPair cry cur) =
+  "https://api.coinbase.com/v2/prices/" <> show cry <> "-" <> cur <> "/spot"

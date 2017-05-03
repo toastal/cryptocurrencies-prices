@@ -6,13 +6,14 @@ import Control.Applicative
 import Control.Lens
 import Data.Maybe (maybe)
 import Data.Monoid ((<>), mappend)
-import Data.Text as Text
+import qualified Data.Text as Text
+import qualified Data.Text.Format as Format
+import qualified Data.Text.Format.Params as Format
 import Prelude
 
 import Data.Aeson.Lens (_String, key)
 import qualified Network.Wreq as Wreq
 import qualified Options.Applicative as Optparse
-import Options.Applicative.Types (ReadM)
 
 main :: IO ()
 main = do
@@ -26,6 +27,7 @@ main = do
 data Crypto
   = BTC
   | ETH
+  | LTC
   deriving (Eq, Read, Show)
 
 data CurrencyPair =
@@ -38,7 +40,7 @@ currencyParser =
   Optparse.option
     Optparse.auto
     (Optparse.long "crypto" <> Optparse.metavar "CRYPTO" <>
-     Optparse.help "Cryptocurrency: BTC | ETH") <*>
+     Optparse.help "Cryptocurrency: BTC | ETH | LTC") <*>
   Optparse.strOption
     (Optparse.long "currency" <> Optparse.metavar "CURRENCY" <> Optparse.help "Currency: USD | ...")
 

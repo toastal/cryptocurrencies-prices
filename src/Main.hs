@@ -2,18 +2,20 @@
 
 module Main where
 
+import Prelude
+
 import Control.Applicative
 import Control.Lens
+import Data.Aeson.Lens (_String, key)
 import Data.Maybe (maybe)
 import Data.Monoid ((<>), mappend)
+import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Text.Format as Format
 import qualified Data.Text.Format.Params as Format
-import Prelude
-
-import Data.Aeson.Lens (_String, key)
 import qualified Network.Wreq as Wreq
 import qualified Options.Applicative as Optparse
+
 
 main :: IO ()
 main = do
@@ -24,25 +26,30 @@ main = do
   let amount = r ^? Wreq.responseBody . key "data" . key "amount" . _String
   putStrLn . maybe "Err" Text.unpack $ amount
 
+
 data Crypto
   = BTC
   | ETH
   | LTC
-  deriving (Eq, Read, Show)
+  deriving (Bounded, Enum, Eq, Read, Show)
+
 
 data CurrencyPair =
-  CurrencyPair Crypto
-               String
+  CurrencyPair Crypto String
+
 
 currencyParser :: Optparse.Parser CurrencyPair
 currencyParser =
-  CurrencyPair <$>
-  Optparse.option
-    Optparse.auto
-    (Optparse.long "crypto" <> Optparse.metavar "CRYPTO" <>
-     Optparse.help "Cryptocurrency: BTC | ETH | LTC") <*>
-  Optparse.strOption
-    (Optparse.long "currency" <> Optparse.metavar "CURRENCY" <> Optparse.help "Currency: USD | ...")
+  CurrencyPair
+    <$> Optparse.option
+      Optparse.auto
+      (Optparse.long "crypto"
+        <> Optparse.metavar "CRYPTO"
+        <> Optparse.help ("Cryptocurrency: " <> (List.intercalate " | " $ show <$> [ (minBound :: Crypto) .. ])))
+    <*> Optparse.strOption
+      (Optparse.long "currency"
+        <> Optparse.metavar "CURRENCY"
+        <> Optparse.help "Currency: USD | ...")
 
 coinbaseApi :: CurrencyPair -> String
 coinbaseApi (CurrencyPair cry cur) =

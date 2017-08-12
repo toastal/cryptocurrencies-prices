@@ -51,6 +51,7 @@ currencyParser =
         <> Optparse.metavar "CURRENCY"
         <> Optparse.help "Currency: USD | ...")
 
+
 coinbaseApi :: CurrencyPair -> String
 coinbaseApi (CurrencyPair cry cur) =
   "https://api.coinbase.com/v2/prices/" <> show cry <> "-" <> cur <> "/spot"

@@ -23,6 +23,7 @@ executable cryptocurrencies-prices
                      , lens
                      , lens-aeson
                      , optparse-applicative
+                     , optparse-text
                      , text
                      , text-format
                      , wreq

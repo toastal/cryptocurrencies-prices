@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax #-}
 
 module Main where
 
@@ -7,24 +7,25 @@ import Prelude
 import Control.Applicative
 import Control.Lens
 import Data.Aeson.Lens (_String, key)
-import Data.Maybe (maybe)
-import Data.Monoid ((<>), mappend)
+import Data.Maybe (fromMaybe)
+import Data.Monoid ((<>))
 import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Text.Format as Format
 import qualified Data.Text.Format.Params as Format
 import qualified Network.Wreq as Wreq
 import qualified Options.Applicative as Optparse
+import qualified Options.Applicative.Text as Optparse
 
 
-main :: IO ()
+main ∷ IO ()
 main = do
   let parserOpts = Optparse.info (currencyParser <**> Optparse.helper) Optparse.fullDesc
-  currencyPair <- Optparse.execParser parserOpts
-  let wreqOpts = Wreq.defaults & Wreq.header "CB-VERSION" .~ ["2017-03-04"]
-  r <- Wreq.getWith wreqOpts $ coinbaseApi currencyPair
-  let amount = r ^? Wreq.responseBody . key "data" . key "amount" . _String
-  putStrLn . maybe "Err" Text.unpack $ amount
+  ( crypto, currency ) ← Optparse.execParser parserOpts
+  let wreqOpts = Wreq.defaults & Wreq.header "CB-VERSION" .~ [ "2017-11-17" ]
+  r ← Wreq.getWith wreqOpts $ coinbaseAPI crypto
+  let amount = r ^? Wreq.responseBody . key "data" . key "rates" . key currency . _String
+  putStrLn . Text.unpack $ fromMaybe ("Error: `" <> currency <> "` not found.") amount
 
 
 data Crypto
@@ -34,24 +35,24 @@ data Crypto
   deriving (Bounded, Enum, Eq, Read, Show)
 
 
-data CurrencyPair =
-  CurrencyPair Crypto String
+type CurrencyPair =
+  ( Crypto, Text.Text )
 
 
-currencyParser :: Optparse.Parser CurrencyPair
+currencyParser ∷ Optparse.Parser CurrencyPair
 currencyParser =
-  CurrencyPair
+  (,)
     <$> Optparse.option
       Optparse.auto
       (Optparse.long "crypto"
         <> Optparse.metavar "CRYPTO"
         <> Optparse.help ("Cryptocurrency: " <> (List.intercalate " | " $ show <$> [ (minBound :: Crypto) .. ])))
-    <*> Optparse.strOption
+    <*> Optparse.textOption
       (Optparse.long "currency"
         <> Optparse.metavar "CURRENCY"
         <> Optparse.help "Currency: USD | ...")
 
 
-coinbaseApi :: CurrencyPair -> String
-coinbaseApi (CurrencyPair cry cur) =
-  "https://api.coinbase.com/v2/prices/" <> show cry <> "-" <> cur <> "/spot"
+coinbaseAPI ∷ Crypto → String
+coinbaseAPI cry =
+  "https://api.coinbase.com/v2/exchange-rates?currency=" <> show cry

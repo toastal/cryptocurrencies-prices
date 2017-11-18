@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax #-}
+{-# LANGUAGE DeriveGeneric, LambdaCase, OverloadedStrings, ScopedTypeVariables, UnicodeSyntax #-}
 
 module Main where
 
@@ -6,53 +6,55 @@ import Prelude
 
 import Control.Applicative
 import Control.Lens
-import Data.Aeson.Lens (_String, key)
-import Data.Maybe (fromMaybe)
+import Data.Aeson.Lens (_Object, _String, key)
+import Data.Aeson.Types (Value)
+import Data.Foldable (fold)
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as HashMap
+import Data.Maybe (mapMaybe, maybe)
 import Data.Monoid ((<>))
 import qualified Data.List as List
+import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Format as Format
 import qualified Data.Text.Format.Params as Format
 import qualified Network.Wreq as Wreq
-import qualified Options.Applicative as Optparse
-import qualified Options.Applicative.Text as Optparse
+import qualified Options.Generic as Optparse
+
+--import Currency (Currency)
+
+
+coinbaseAPI ∷ String → String
+coinbaseAPI c =
+  "https://api.coinbase.com/v2/exchange-rates?currency=" <> c
+
+
+data Input = Input
+  { baseCurrency ∷ String
+  , pickCurrencies ∷ [Text]
+  , separator ∷ Text.Text
+  , divider ∷ Text.Text
+  } deriving (Optparse.Generic, Show)
+
+
+instance Optparse.ParseRecord Input
 
 
 main ∷ IO ()
 main = do
-  let parserOpts = Optparse.info (currencyParser <**> Optparse.helper) Optparse.fullDesc
-  ( crypto, currency ) ← Optparse.execParser parserOpts
+  input ∷ Input ← Optparse.getRecord "Crypto & Currency Exchange"
   let wreqOpts = Wreq.defaults & Wreq.header "CB-VERSION" .~ [ "2017-11-17" ]
-  r ← Wreq.getWith wreqOpts $ coinbaseAPI crypto
-  let amount = r ^? Wreq.responseBody . key "data" . key "rates" . key currency . _String
-  putStrLn . Text.unpack $ fromMaybe ("Error: `" <> currency <> "` not found.") amount
+  r ← Wreq.getWith wreqOpts $ coinbaseAPI (baseCurrency input)
+  let
+    ratesMap ∷ HashMap Text Value
+    ratesMap =
+      r ^? Wreq.responseBody . key "data" . key "rates" . _Object & fold
 
+    rateStr ∷ Text → Maybe Text
+    rateStr c = do
+      v ← HashMap.lookup c ratesMap
+      a ← v ^? _String
+      return $ c <> divider input <> a
 
-data Crypto
-  = BTC
-  | ETH
-  | LTC
-  deriving (Bounded, Enum, Eq, Read, Show)
+  putStrLn . Text.unpack . Text.intercalate (separator input) . mapMaybe rateStr $ pickCurrencies input
 
-
-type CurrencyPair =
-  ( Crypto, Text.Text )
-
-
-currencyParser ∷ Optparse.Parser CurrencyPair
-currencyParser =
-  (,)
-    <$> Optparse.option
-      Optparse.auto
-      (Optparse.long "crypto"
-        <> Optparse.metavar "CRYPTO"
-        <> Optparse.help ("Cryptocurrency: " <> (List.intercalate " | " $ show <$> [ (minBound :: Crypto) .. ])))
-    <*> Optparse.textOption
-      (Optparse.long "currency"
-        <> Optparse.metavar "CURRENCY"
-        <> Optparse.help "Currency: USD | ...")
-
-
-coinbaseAPI ∷ Crypto → String
-coinbaseAPI cry =
-  "https://api.coinbase.com/v2/exchange-rates?currency=" <> show cry

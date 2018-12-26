@@ -1,13 +1,13 @@
 name:                cryptocurrencies-prices
-version:             0.1.0.0
+version:             0.1.0.1
 -- synopsis:
 -- description:
 homepage:            https://github.com/toastal/cryptocurrencies-prices#readme
 license:             MIT
 license-file:        LICENSE
-author:              Kyle J. Kress (@toastal)
+author:              toastal
 maintainer:          toastal@protonmail.com
-copyright:           2017 Kyle J. Kress (@toastal)
+copyright:           2018 toastal
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
@@ -27,3 +27,9 @@ executable cryptocurrencies-prices
                      , text
                      , text-format
                      , wreq
+  extensions:          LambdaCase
+                     , NoImplicitPrelude
+                     , OverloadedStrings
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , UnicodeSyntax
